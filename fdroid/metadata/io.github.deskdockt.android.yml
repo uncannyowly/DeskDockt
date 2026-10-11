@@ -6,6 +6,8 @@ AuthorWebSite: https://uncannyowly.com
 SourceCode: https://github.com/uncannyowly/DeskDockt
 IssueTracker: https://github.com/uncannyowly/DeskDockt/issues
 
+AutoName: desk dockt
+
 RepoType: git
 Repo: https://github.com/uncannyowly/DeskDockt.git
 
@@ -16,6 +18,7 @@ Builds:
     subdir: android-companion
     gradle:
       - yes
+    output: app/build/outputs/apk/release/app-release-unsigned.apk
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
