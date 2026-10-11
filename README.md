@@ -22,4 +22,4 @@ Current release: 0.2.4.
 
 ## F-Droid
 
-Listing metadata and screenshots are prepared. Inclusion has not yet been approved; no F-Droid download is available. See [submission preparation](fdroid/submission.md).
+[F-Droid inclusion request](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52116) is submitted and awaiting review. Inclusion has not yet been approved; no F-Droid download is available. See [submission preparation](fdroid/submission.md).
