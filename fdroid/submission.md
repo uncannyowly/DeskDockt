@@ -7,7 +7,7 @@ License: MIT
 Version: 0.2.4 (204)
 Minimum Android: 8 / API 26
 Target: Android 17 / API 37
-Source repository: https://github.com/uncannyowly/DeskDoct (publication pending)
+Source repository: https://github.com/uncannyowly/DeskDockt (publication pending)
 Release tag: v0.2.4, to be created in that repository
 
 desk dockt is a newly written Android mouse/keyboard companion with a free Python desktop host. It supports authorized ADB and optional TLS direct Wi-Fi, screenshots, Unicode input and text clipboard sharing. It has no Google Play Services, analytics, ads, licensing server, JNI or third-party runtime dependencies. The accessibility service injects gestures and does not retrieve window contents.
