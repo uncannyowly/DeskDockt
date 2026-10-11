@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.deskdockt.android'
+    compileSdkVersion 'android-37.0'
+    buildToolsVersion '37.0.0'
+    defaultConfig {
+        applicationId 'io.github.deskdockt.android'
+        minSdk 26
+        targetSdk 37
+        versionCode 204
+        versionName '0.2.4'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes { release { minifyEnabled false } }
+    lint { abortOnError true }
+}

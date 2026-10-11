@@ -1,0 +1,23 @@
+Categories:
+  - Connectivity
+License: MIT
+AuthorName: uncannyOwly
+AuthorWebSite: https://uncannyowly.com
+SourceCode: https://github.com/uncannyowly/DeskDoct
+IssueTracker: https://github.com/uncannyowly/DeskDoct/issues
+
+RepoType: git
+Repo: https://github.com/uncannyowly/DeskDoct.git
+
+Builds:
+  - versionName: 0.2.4
+    versionCode: 204
+    commit: v0.2.4
+    subdir: android-companion
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.2.4
+CurrentVersionCode: 204

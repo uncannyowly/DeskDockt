@@ -1,0 +1,7 @@
+{
+  "uuid": "deskdock-cursor@local",
+  "name": "DeskDock Cursor",
+  "description": "Hide the desktop cursor while DeskDock controls your phone.",
+  "shell-version": ["50", "51"],
+  "version": 1
+}

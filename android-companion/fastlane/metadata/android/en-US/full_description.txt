@@ -1,0 +1,15 @@
+Control your Android phone with your desktop mouse and keyboard. Move past a desktop edge to enter the phone and back to return.
+
+Choose LOCAL (cable) or WiFi (net) in the one-time setup guide. USB/ADB uses your authorized computer without an app pairing code. Optional direct Wi-Fi uses TLS certificate verification and local pairing; no USB debugging is required for that connection.
+
+Features:
+• Mouse movement, clicks, dragging and scrolling
+• Keyboard input, Unicode text, Backspace and Android Back
+• Print Screen triggers an Android screenshot on Android 9 or newer
+• Optional two-way text clipboard sharing
+• Saved Connect on start setting
+• Quick connection switching and native settings shortcuts
+
+Requires the free Python desktop host. It includes backends for GNOME Wayland with InputCapture portal/libei, Linux X11, Windows and macOS. Windows/macOS hardware validation is still pending. Phone-side input control needs your approval in Android Accessibility settings. Direct Wi-Fi typing requires enabling and selecting the companion keyboard.
+
+No account, purchase, activation server, cloud relay or analytics. One desktop session at a time. This is input sharing, not PC video streaming. Newly written MIT-licensed software inspired by the original DeskDock workflow; not an official update from its author.

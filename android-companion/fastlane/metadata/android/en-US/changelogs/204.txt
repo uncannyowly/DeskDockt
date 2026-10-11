@@ -1,0 +1,1 @@
+One-time cable/Wi-Fi setup, saved Connect on start, debugging/settings shortcuts, Other connection buttons and a simpler home screen. ADB no longer needs an app pairing code. Desktop settings precede connection controls and tray actions follow session state.
