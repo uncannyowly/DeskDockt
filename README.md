@@ -20,8 +20,8 @@ Current release: 0.2.5.
 - [Android APK (unzip before installing)](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-android.apk.zip)
 - [Python host source](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-python-host.zip)
 - [Android source](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-android-source.zip)
-- [SHA-256 checksums](https://uncannyowly.com/content/files/2026/10/SHA256SUMS-2.txt)
+- [SHA-256 checksums](https://uncannyowly.com/content/files/2026/10/SHA256SUMS-3.txt)
 
 ## F-Droid
 
-[F-Droid inclusion request](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52116) is submitted and awaiting review. Inclusion has not yet been approved; no F-Droid download is available. See [submission preparation](fdroid/submission.md).
+[F-Droid inclusion request](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52116) was corrected to follow the required inclusion template and reopened for review. Inclusion has not yet been approved; no F-Droid download is available. See [submission preparation](fdroid/submission.md).

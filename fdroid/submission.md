@@ -1,6 +1,6 @@
 # F-Droid inclusion request: desk dockt
 
-Status: submitted for review. https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52116
+Status: corrected inclusion template and reopened for review. https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52116
 
 Submission is not approval or F-Droid availability.
 
@@ -20,7 +20,7 @@ Build from android-companion with JDK 17, Gradle 8.13, AGP 8.13.2, platforms;and
 JAVA_HOME=<JDK17> ANDROID_HOME=<SDK> ./gradlew assembleRelease lint
 Unsigned output: app/build/outputs/apk/release/app-release-unsigned.apk
 
-Local Android release/debug builds and lint pass. F-Droid buildserver compatibility has not been tested; the Android 17 SDK/package availability must be checked in its CI. F-Droid signs its own builds unless reproducible upstream-signature verification is configured; do not claim sideload/F-Droid signature interchangeability.
+Local Android release/debug builds and lint pass. The 0.2.4 F-Droid pipeline passed all jobs, including compiling the APK; the updated 0.2.5 pipeline is running. F-Droid signs its own builds unless reproducible upstream-signature verification is configured; do not claim sideload/F-Droid signature interchangeability.
 
 Listing text, icon, four real Android 15 emulator screenshots and changelog 205 are in android-companion/fastlane/metadata/android/en-US.
 
