@@ -42,7 +42,7 @@ def config_path():
 
 
 def load_settings(path=None):
-    defaults = {'serial':'','edge':'right','speed':1.0,'repeat':True,'pairing_code':'','wifi_address':'','tls_fingerprint':''}
+    defaults = {'serial':'','edge':'right','speed':1.0,'repeat':True,'pairing_code':'','wifi_address':'','tls_fingerprint':'','share_clipboard':False,'phone_layout':None}
     try:
         data = json.loads((path or config_path()).read_text())
         if not isinstance(data,dict): return defaults
@@ -51,6 +51,9 @@ def load_settings(path=None):
         if isinstance(speed,(float,int)) and 0.1 <= speed <= 4: defaults['speed']=float(speed)
         if isinstance(data.get('serial'),str): defaults['serial']=data['serial']
         if isinstance(data.get('repeat'),bool): defaults['repeat']=data['repeat']
+        if isinstance(data.get('share_clipboard'),bool):defaults['share_clipboard']=data['share_clipboard']
+        from placement import validate
+        defaults['phone_layout']=validate(data.get('phone_layout'))
         for name in ('pairing_code','wifi_address','tls_fingerprint'):
             if isinstance(data.get(name),str):defaults[name]=data[name]
     except (OSError,ValueError): pass
@@ -81,6 +84,8 @@ class Worker:
         command=([interpreter,'--worker'] if getattr(sys,'frozen',False) else [interpreter,'-u',str(ROOT/'worker.py')])
         command+=['--desktop-worker','--serial',serial,
                  '--edge',edge,'--speed',str(speed)]
+        placement=load_settings().get('phone_layout')
+        if placement:command+=['--phone-layout',json.dumps(placement)]
         if not repeat: command.append('--no-repeat')
         self.stopping=False
         environment=os.environ.copy()

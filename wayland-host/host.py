@@ -22,15 +22,9 @@ from keymap import KEYS
 
 
 def barrier(zones, edge):
-    """Choose a full monitor edge at the extreme boundary of the monitor union."""
-    if not zones:
-        raise ValueError('The portal returned no monitors')
-    extrema = {'right': lambda z:z[2]+z[0], 'left': lambda z:-z[2],
-               'bottom': lambda z:z[3]+z[1], 'top': lambda z:-z[3]}
-    w,h,x,y = max(zones, key=extrema[edge])
-    lines = {'right':(x+w,y,x+w,y+h-1), 'left':(x,y,x,y+h-1),
-             'bottom':(x,y+h,x+w-1,y+h), 'top':(x,y,x+w-1,y)}
-    return (w,h,x,y), lines[edge]
+    from placement import geometry
+    zone,line,_,_=geometry(zones,edge)
+    return zone,line
 
 class Portal:
     def __init__(self):
@@ -118,7 +112,7 @@ class Portal:
             self.session = None
 
 class Host:
-    def __init__(self, phone, portal, edge, speed, notify=None, repeat=True):
+    def __init__(self, phone, portal, edge, speed, notify=None, repeat=True, layout=None):
         self.phone, self.portal, self.edge, self.speed = phone, portal, edge, speed
         self.notify = notify or (lambda **event: None)
         self.repeat = repeat
@@ -128,6 +122,9 @@ class Host:
         self.temporary_entry = False
         self.active = None
         self.x = self.y = 0
+        from clipboard_state import ClipboardState
+        self.clipboard=ClipboardState()
+        self.layout=layout
         self.zone = None
         self.keys = {}
         self.buttons = set()
@@ -153,7 +150,8 @@ class Host:
             self.release()
         p = self.portal
         result = p.request('GetZones', p.session)
-        self.zone, line = barrier([tuple(map(int,z)) for z in result['zones']], self.edge)
+        from placement import geometry
+        self.zone,line,self.trigger_start,self.trigger_span=geometry([tuple(map(int,z)) for z in result['zones']],self.edge,self.layout)
         definition = dbus.Dictionary({'barrier_id':dbus.UInt32(1),
                                       'position':dbus.Struct(line, signature='iiii')}, signature='sv')
         result = p.request('SetPointerBarriers', p.session,
@@ -177,10 +175,11 @@ class Host:
                 cx,cy = map(float, options.get('cursor_position',(x,y)))
                 if self.edge in ('right','left'):
                     self.x = 2 if self.edge == 'right' else self.phone.width-3
-                    self.y = max(0,min(self.phone.height-1,(cy-y)/h*self.phone.height))
+                    self.y = max(0,min(self.phone.height-1,(cy-self.trigger_start)/self.trigger_span*self.phone.height))
                 else:
-                    self.x = max(0,min(self.phone.width-1,(cx-x)/w*self.phone.width))
+                    self.x = max(0,min(self.phone.width-1,(cx-self.trigger_start)/self.trigger_span*self.phone.width))
                     self.y = 2 if self.edge == 'bottom' else self.phone.height-3
+                self.clipboard.sync(self.phone)
                 self.phone.enter(True)
                 self.phone.move(self.x,self.y)
                 self.notify(type="active")
@@ -230,9 +229,9 @@ class Host:
         try:
             w,h,x,y = self.zone
             if self.edge in ('right','left'):
-                cursor = (x+w-2 if self.edge == 'right' else x+1, y+self.y/self.phone.height*(h-1))
+                cursor = (x+w-2 if self.edge == 'right' else x+1, max(y,min(y+h-1,self.trigger_start+self.y/self.phone.height*self.trigger_span)))
             else:
-                cursor = (x+self.x/self.phone.width*(w-1), y+h-2 if self.edge == 'bottom' else y+1)
+                cursor = (max(x,min(x+w-1,self.trigger_start+self.x/self.phone.width*self.trigger_span)), y+h-2 if self.edge == 'bottom' else y+1)
             self.portal.api.Release(self.portal.session, dbus.Dictionary({
                 'activation_id':dbus.UInt32(activation),
                 'cursor_position':dbus.Struct(tuple(dbus.Double(value) for value in cursor),signature='dd')}, signature='sv'))
@@ -405,6 +404,7 @@ def main():
     parser.add_argument('--no-repeat',action='store_true',help='Disable key auto-repeat')
     parser.add_argument('--check',action='store_true',help='Check Wayland support without requesting input capture')
     parser.add_argument('--serial',help='adb serial (required when multiple devices are attached)')
+    parser.add_argument('--phone-layout',type=json.loads)
     parser.add_argument('--edge',choices=['left','right','top','bottom'],default='right')
     parser.add_argument('--speed',type=float,default=1.0)
     args=parser.parse_args()
@@ -434,7 +434,10 @@ def main():
         phone.launch()
         phone.connect()
         phone.wait_agent()
-        host=Host(phone,portal,args.edge,args.speed,notify=notify,repeat=not args.no_repeat)
+        host=Host(phone,portal,args.edge,args.speed,notify=notify,repeat=not args.no_repeat,layout=args.phone_layout)
+        def phone_clipboard(text):
+            host.clipboard.update(text);notify(type='clipboard',text=text)
+        phone.on_clipboard=phone_clipboard
         if args.desktop_worker:
             def commands():
                 for line in sys.stdin:
@@ -442,7 +445,9 @@ def main():
                         command=json.loads(line)
                         def execute(command=command):
                             try:
-                                if command.get('command')=='clipboard': phone.clipboard(command['text'])
+                                if command.get('command')=='clipboard':
+                                    host.clipboard.update(command['text']);phone.clipboard(command['text'])
+                                elif command.get('command')=='clipboard-sharing':host.clipboard.configure(command['enabled'])
                                 elif command.get('command')=='text': host.paste_text(command['text'])
                                 elif command.get('command')=='release': host.release()
                                 elif command.get('command')=='stop':host.stop()

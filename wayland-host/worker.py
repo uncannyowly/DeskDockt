@@ -16,6 +16,7 @@ def main(argv=None):
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--desktop-worker',action='store_true')
     parser.add_argument('--serial');parser.add_argument('--edge',choices=('left','right','top','bottom'),default='right')
+    parser.add_argument('--phone-layout',type=json.loads)
     parser.add_argument('--speed',type=float,default=1);parser.add_argument('--no-repeat',action='store_true')
     args=parser.parse_args(argv)
     if not .1<=args.speed<=4:parser.error('Pointer speed must be between 0.1 and 4')
@@ -53,7 +54,10 @@ def main(argv=None):
         phone.on_disconnect=lambda:emit('failure',(str(phone.error),))
         notify(type='connecting');phone.launch();phone.connect();phone.wait_agent()
         from native_engine import Engine
-        engine=Engine(phone,backend,args.edge,args.speed,notify,not args.no_repeat)
+        engine=Engine(phone,backend,args.edge,args.speed,notify,not args.no_repeat,args.phone_layout)
+        def phone_clipboard(text):
+            engine.clipboard.update(text);notify(type='clipboard',text=text)
+        phone.on_clipboard=phone_clipboard
         if hasattr(backend,'start'):backend.start()
         failure=[]
         def stop(*_):application.quit()
@@ -71,7 +75,9 @@ def main(argv=None):
                         command=data
                         if command.get('command')=='stop':stop()
                         elif command.get('command')=='release':engine.release()
-                        elif command.get('command')=='clipboard':phone.clipboard(command['text'])
+                        elif command.get('command')=='clipboard':
+                            engine.clipboard.update(command['text']);phone.clipboard(command['text'])
+                        elif command.get('command')=='clipboard-sharing':engine.clipboard.configure(command['enabled'])
                         elif command.get('command')=='text':phone.text(command['text'])
                     else:getattr(engine,kind)(*data)
                 engine.tick()

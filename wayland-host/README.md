@@ -42,14 +42,28 @@ repeat after 500 ms; disable repeat in settings if desired.
 (Android 9+). On macOS an external keyboard's Print Screen/F13 maps to this action.
 Android handles saving and its screenshot UI.
 
-Enable **Share text clipboard while connected** on both apps for automatic
-clipboard sharing. This uses change notifications, not polling. Phone clipboard
-access runs through the selected companion keyboard, following Android's clipboard
-access rules. Equality guards prevent ordinary echo loops. Desktop clipboard
-availability during Wayland capture still depends on the compositor; manual
-**Send clipboard** and the phone's **Send phone clipboard** remain available.
-Only text is synchronized. Sharing switches are opt-in; they do not upload text
-to a server. Disable them when clipboard sharing is unwanted.
+Enable **Share clipboard** on both apps for automatic text sharing. The host
+saves this preference and sends the current clipboard again each time you cross
+into the phone, so Ctrl+V can use it without opening either app. Change
+notifications keep it current between crossings; there is no polling loop.
+Phone clipboard access uses the selected companion keyboard within Android's
+rules. Echo guards prevent ordinary loops. On Wayland, the host caches text
+while desktop clipboard access is available and refreshes it on entry; fresh
+reads during capture still depend on the compositor. Only text is synchronized.
+Sharing is opt-in. Disable the switch when clipboard sharing is unwanted.
+
+### Position the phone and crossing area
+
+Choose a monitor in the layout preview, then drag the phone around its edges.
+Enable **Use positioned phone** to capture only the green overlap. Adjust
+**Phone height / monitor height** to match the physical arrangement; the
+portrait silhouette is representative, not an automatic physical measurement.
+A phone hanging two thirds above a corner exposes only its lower third as a
+crossing area. Entry maps to that same third of the phone, and return maps back
+to the matching monitor position. Layout is saved; stop sharing before editing.
+Turn off **Use positioned phone** for the original full-edge behavior. If the
+monitor geometry changes, reposition it before sharing. Wayland compositors
+may reject edges between two desktop monitors: choose an exposed outside edge.
 
 **Paste text** sends entered text to a focused phone field. **Send file** delivers
 a selected file to Android Downloads using ADB, without replacing existing files. File transfer currently requires

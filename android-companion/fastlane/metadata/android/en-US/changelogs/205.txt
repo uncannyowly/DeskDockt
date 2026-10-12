@@ -1,0 +1,1 @@
+Share clipboard replaces manual sending. Desktop sharing is saved and automatically synchronizes text on entry into the phone. New draggable monitor/phone layout selects the precise overlapping trigger area, supports corner overhang, and maps entry and return proportionally. All desktop backends use the same placement geometry.

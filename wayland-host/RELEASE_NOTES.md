@@ -1,3 +1,19 @@
+## 0.2.5 — clipboard on entry and phone placement
+
+- Share clipboard replaces manual Send buttons; the preference is saved.
+- The capture worker resends cached text before forwarding phone input. The UI
+  also refreshes on entry, with opt-out and stale asynchronous-read guards.
+- GTK and Qt hosts have a draggable portrait phone / monitor preview, monitor
+  selection and relative size adjustment. Only overlap triggers capture; phone
+  and desktop cursor positions map proportionally, including corner overhang.
+- Full-edge mode remains available. Monitor geometry changes require repositioning.
+- Qt settings scroll to fit smaller displays.
+
+Validation: Android release/debug builds and lint pass; all 58 desktop checks
+pass on an isolated X11 display. A simulated edge transition into a real Android
+15 release emulator resends text and Ctrl+V pastes Unicode without a Send action.
+Windows/macOS hardware and live Wayland placement testing remain pending.
+
 # desk dockt 0.2.0
 
 ## New implementation

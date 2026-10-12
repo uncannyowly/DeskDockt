@@ -13,6 +13,7 @@ class CaptureTests(unittest.TestCase):
         self.portal=Mock(session='/test')
         self.host=Host(self.phone,self.portal,'right',1,repeat=False)
         self.host.zone=(1920,1080,0,0)
+        self.host.trigger_start=0;self.host.trigger_span=1080
         self.host.active=7
         self.host.x,self.host.y=3,1200
 

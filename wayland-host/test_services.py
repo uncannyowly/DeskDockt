@@ -25,7 +25,7 @@ class ServicesTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'nested'/'settings.json'
             data={'serial':'pixel','edge':'left','speed':.7,'repeat':False}
-            data.update(pairing_code='12345678',wifi_address='192.168.1.20:19674',tls_fingerprint='a'*64)
+            data.update(share_clipboard=True,phone_layout=None,pairing_code='12345678',wifi_address='192.168.1.20:19674',tls_fingerprint='a'*64)
             save_settings(data,path)
             self.assertEqual(load_settings(path),data)
 

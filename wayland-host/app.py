@@ -30,6 +30,8 @@ class App(Adw.Application):
         self.closing=False
         self.last_error=''
         self.phone_clipboard=None
+        self.desktop_clipboard=None
+        self.clipboard_generation=0
         self.requested_serial=None
         self.tray=None
         self.tray_ready=False
@@ -119,11 +121,14 @@ class App(Adw.Application):
         self.fingerprint=Adw.EntryRow(title='Phone TLS SHA-256 fingerprint');self.fingerprint.set_text(self.settings.get('tls_fingerprint',''));group.add(self.fingerprint)
         self.wifi.connect('notify::active',lambda *_:self.controls());self.address.connect('changed',lambda *_:self.controls())
         content.append(group)
+        from layout_gtk import LayoutEditor
+        self.placement=LayoutEditor(self.settings,self.layout_changed);content.append(self.placement)
+        self.edge.connect('notify::selected',lambda *_:self.placement.set_edge(EDGES[self.edge.get_selected()]) if self.placement.model.edge!=EDGES[self.edge.get_selected()] else None)
         tools=Adw.PreferencesGroup(title='Phone tools')
-        self.clip_sync=Adw.SwitchRow(title='Share text clipboard while connected');tools.add(self.clip_sync)
+        self.clip_sync=Adw.SwitchRow(title='Share clipboard',subtitle='Sync text automatically when you enter the phone');tools.add(self.clip_sync)
+        self.clip_sync.set_active(self.settings['share_clipboard'])
         self.window.get_display().get_clipboard().connect('changed',self.clipboard_changed)
-        self.clip_sync.connect('notify::active',lambda *_:self.clipboard_changed(self.window.get_display().get_clipboard()))
-        self.send_clip=self.tool(tools,'Send clipboard','Copy desktop text to the phone clipboard','Send',self.clipboard_clicked)
+        self.clip_sync.connect('notify::active',self.clipboard_toggled)
         self.copy_clip=self.tool(tools,'Phone clipboard','Copy the last text received from your phone','Copy',self.copy_phone_clipboard)
         self.paste=self.tool(tools,'Paste text','Type text into the focused field on your phone','Paste…',self.paste_clicked)
         self.send_file=self.tool(tools,'Send a file','Save a file in your phone’s Downloads folder','Choose…',self.file_clicked)
@@ -200,8 +205,8 @@ class App(Adw.Application):
         self.lookup_action('start').set_enabled(self.start.get_sensitive())
         self.lookup_action('stop').set_enabled(self.stop.get_sensitive())
         self.sharing_action.set_state(GLib.Variant('b',running))
-        for control in (self.device,self.edge,self.speed,self.repeat,self.pairing,self.wifi,self.address,self.fingerprint):control.set_sensitive(not running and not self.busy)
-        for control in (self.send_clip,self.paste):control.set_sensitive(running and getattr(self,'connected',False) and not self.worker.stopping)
+        for control in (self.placement,self.device,self.edge,self.speed,self.repeat,self.pairing,self.wifi,self.address,self.fingerprint):control.set_sensitive(not running and not self.busy)
+        for control in (self.paste,):control.set_sensitive(running and getattr(self,'connected',False) and not self.worker.stopping)
         self.copy_clip.set_sensitive(self.phone_clipboard is not None)
         self.send_file.set_sensitive(ready and not self.wifi.get_active() and not self.busy)
         if not running and selected and selected.state=='unauthorized':
@@ -241,10 +246,16 @@ class App(Adw.Application):
         if kind=='permission':self.status.set_label('Approve the GNOME input-capture dialog to continue.')
         elif kind=='ready':
             self.connected=True;self.spinner.stop()
+            self.worker.send('clipboard-sharing',enabled=self.clip_sync.get_active())
             self.status.set_label('Sharing is ready. Move past the '+self.settings['edge']+' edge.')
-            self.clipboard_changed(self.window.get_display().get_clipboard())
-        elif kind=='active':self.status.set_label('Your mouse and keyboard are controlling the phone.')
+            self.clipboard_changed(self.window.get_display().get_clipboard(),force=True)
+        elif kind=='active':
+            self.status.set_label('Your mouse and keyboard are controlling the phone.')
+            if self.clip_sync.get_active() and self.desktop_clipboard is not None:
+                if self.worker.send('clipboard',text=self.desktop_clipboard):self.phone_clipboard=self.desktop_clipboard
+            self.clipboard_changed(self.window.get_display().get_clipboard(),force=True)
         elif kind=='clipboard':
+            self.clipboard_generation+=1
             if event['text']!=self.phone_clipboard:
                 self.phone_clipboard=event['text']
                 if self.clip_sync.get_active():self.window.get_display().get_clipboard().set(self.phone_clipboard)
@@ -260,24 +271,30 @@ class App(Adw.Application):
                 self.status.set_label('Connection ended. Check Connection details.');self.toast(message)
         self.controls();return False
 
-    def clipboard_changed(self,clipboard):
+    def layout_changed(self,edge,layout):
+        self.settings.update(edge=edge,phone_layout=layout);save_settings(self.settings)
+        if self.edge.get_selected()!=EDGES.index(edge):self.edge.set_selected(EDGES.index(edge))
+
+    def clipboard_toggled(self,*_):
+        self.settings['share_clipboard']=self.clip_sync.get_active()
+        if not self.settings['share_clipboard']:self.desktop_clipboard=None
+        save_settings(self.settings)
+        self.worker.send('clipboard-sharing',enabled=self.clip_sync.get_active())
+        self.clipboard_changed(self.window.get_display().get_clipboard(),force=True)
+
+    def clipboard_changed(self,clipboard,force=False):
+        self.clipboard_generation+=1
+        generation=self.clipboard_generation
         if not self.clip_sync.get_active():return
         def received(clipboard,result):
             try:
                 text=clipboard.read_text_finish(result)
-                if text is not None and text!=self.phone_clipboard:
-                    self.phone_clipboard=text;self.worker.send('clipboard',text=text)
+                if generation!=self.clipboard_generation or not self.clip_sync.get_active():return
+                if text is not None:self.desktop_clipboard=text
+                if (getattr(self,'connected',False) and text is not None
+                        and (force or text!=self.phone_clipboard)):
+                    if self.worker.send('clipboard',text=text):self.phone_clipboard=text
             except GLib.Error:pass
-        clipboard.read_text_async(None,received)
-
-    def clipboard_clicked(self,*_):
-        clipboard=self.window.get_display().get_clipboard()
-        def received(clipboard,result):
-            try:
-                text=clipboard.read_text_finish(result)
-                if text and self.worker.send('clipboard',text=text):self.toast('Clipboard text sent to your phone.')
-                else:self.toast('No clipboard text available. Copy text, then try again.')
-            except GLib.Error as exc:self.toast(str(exc))
         clipboard.read_text_async(None,received)
 
     def copy_phone_clipboard(self,*_):

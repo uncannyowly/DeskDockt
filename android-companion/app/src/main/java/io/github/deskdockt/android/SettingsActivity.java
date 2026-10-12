@@ -73,13 +73,9 @@ public final class SettingsActivity extends Activity {
             if(enabled)identity.run();
             updateOther();
         });
-        Switch share=new Switch(this);share.setText("Share text clipboard while connected");share.setChecked(getSharedPreferences("pairing",MODE_PRIVATE).getBoolean("share_clipboard",false));
+        Switch share=new Switch(this);share.setText("Share clipboard");share.setChecked(getSharedPreferences("pairing",MODE_PRIVATE).getBoolean("share_clipboard",false));
         share.setOnCheckedChangeListener((button,enabled)->getSharedPreferences("pairing",MODE_PRIVATE).edit().putBoolean("share_clipboard",enabled).apply());content.addView(share);
-        button(content,"Send phone clipboard",()->{
-            ClipboardManager clipboard=getSystemService(ClipboardManager.class);
-            ClipData clip=clipboard.getPrimaryClip();
-            if(clip!=null && clip.getItemCount()>0 && clip.getItemAt(0).getText()!=null) ServerService.clipboard(clip.getItemAt(0).getText().toString());
-        });
+        TextView clipboardHelp=new TextView(this);clipboardHelp.setText("Share text with your desktop automatically. Enable Share clipboard on the desktop too. Keep the desk dockt keyboard selected to share phone text while other apps are open.");content.addView(clipboardHelp);
         TextView notice=new TextView(this);notice.setText("New implementation by the desk dockt project, inspired by DeskDock by Florian Draschbacher. MIT licensed. No activation server, subscription or analytics. Only paired desktop clients can control input. ADB uses a local listener; optional Wi-Fi uses certificate verification and a pairing code.");content.addView(notice);
     }
     private void updateOther(){other.setText(getSharedPreferences("pairing",MODE_PRIVATE).getBoolean("wifi_enabled",false)?"Other connection: LOCAL (cable / ADB)":"Other connection: WiFi (net)");}

@@ -2,28 +2,34 @@
 import time
 
 class Engine:
-    def __init__(self,phone,backend,edge='right',speed=1,notify=None,repeat=True):
+    def __init__(self,phone,backend,edge='right',speed=1,notify=None,repeat=True,layout=None):
         self.phone,self.backend,self.edge,self.speed=phone,backend,edge,speed
         self.notify=notify or (lambda **event:None)
+        from clipboard_state import ClipboardState
+        self.clipboard=ClipboardState()
         self.repeat=repeat;self.active=False;self.keys={};self.buttons=set()
         self.x=self.y=0;self.repeat_key=None;self.next_repeat=0
         zones=backend.monitors()
         if not zones:raise RuntimeError('No desktop monitors found')
-        extrema={'right':lambda z:z[2]+z[0],'left':lambda z:-z[2],
-                 'bottom':lambda z:z[3]+z[1],'top':lambda z:-z[3]}
-        self.zone=max(zones,key=extrema[edge])
+        from placement import geometry
+        self.zone,self.line,self.trigger_start,self.trigger_span=geometry(zones,edge,layout)
 
     def position(self,x,y):
         if self.active:return
         w,h,zx,zy=self.zone
+        if not (zx<=x<zx+w and zy<=y<zy+h):return
         at_edge={'right':x>=zx+w-1 and zy<=y<zy+h,'left':x<=zx and zy<=y<zy+h,
                  'bottom':y>=zy+h-1 and zx<=x<zx+w,'top':y<=zy and zx<=x<zx+w}[self.edge]
-        if not at_edge:return
+        along=y if self.edge in ('right','left') else x
+        lo=self.line[1] if self.edge in ('right','left') else self.line[0]
+        hi=self.line[3] if self.edge in ('right','left') else self.line[2]
+        if not at_edge or not lo<=along<=hi:return
         self.active=True
         try:
             self.backend.capture()
-            self.x=2 if self.edge=='right' else self.phone.width-3 if self.edge=='left' else max(0,min(self.phone.width-1,(x-zx)/w*self.phone.width))
-            self.y=2 if self.edge=='bottom' else self.phone.height-3 if self.edge=='top' else max(0,min(self.phone.height-1,(y-zy)/h*self.phone.height))
+            self.x=2 if self.edge=='right' else self.phone.width-3 if self.edge=='left' else max(0,min(self.phone.width-1,(x-self.trigger_start)/self.trigger_span*self.phone.width))
+            self.y=2 if self.edge=='bottom' else self.phone.height-3 if self.edge=='top' else max(0,min(self.phone.height-1,(y-self.trigger_start)/self.trigger_span*self.phone.height))
+            self.clipboard.sync(self.phone)
             self.phone.enter(True);self.phone.move(self.x,self.y)
             self.notify(type='active')
         except Exception:
@@ -72,8 +78,8 @@ class Engine:
         if not self.active:return
         self.active=False
         w,h,zx,zy=self.zone
-        point=(zx+w-3 if self.edge=='right' else zx+2 if self.edge=='left' else zx+self.x/self.phone.width*(w-1),
-               zy+h-3 if self.edge=='bottom' else zy+2 if self.edge=='top' else zy+self.y/self.phone.height*(h-1))
+        point=(zx+w-3 if self.edge=='right' else zx+2 if self.edge=='left' else max(zx,min(zx+w-1,self.trigger_start+self.x/self.phone.width*self.trigger_span)),
+               zy+h-3 if self.edge=='bottom' else zy+2 if self.edge=='top' else max(zy,min(zy+h-1,self.trigger_start+self.y/self.phone.height*self.trigger_span)))
         try:self.backend.release(point)
         finally:
             try:

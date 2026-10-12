@@ -13,7 +13,7 @@ from PySide6.QtNetwork import QLocalServer,QLocalSocket
 from PySide6.QtGui import QAction,QIcon
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,
     QLabel,QComboBox,QDoubleSpinBox,QCheckBox,QPushButton,QSystemTrayIcon,QMenu,
-    QPlainTextEdit,QInputDialog,QFileDialog,QMessageBox,QLineEdit)
+    QScrollArea,QPlainTextEdit,QInputDialog,QFileDialog,QMessageBox,QLineEdit)
 from branding import NAME,ICON_PATH
 from services import Worker,DeviceWatcher,load_settings,save_settings,send_file
 from platforms import backend_name,subprocess_options
@@ -29,7 +29,7 @@ class Window(QMainWindow):
         self.bridge=Bridge();self.bridge.invoke.connect(lambda fn,args:fn(*args))
         self.dispatch=lambda fn,*args:self.bridge.invoke.emit(fn,args)
         self.worker=Worker(self.dispatch,self.worker_event);self.watcher=DeviceWatcher(self.dispatch,self.devices_changed)
-        root=QWidget();layout=QVBoxLayout(root);self.setCentralWidget(root)
+        root=QWidget();layout=QVBoxLayout(root);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(root);self.setCentralWidget(scroll)
         icon=QLabel();icon.setPixmap(QIcon(str(ICON_PATH)).pixmap(72,72));icon.setAlignment(Qt.AlignmentFlag.AlignCenter);layout.addWidget(icon)
         title=QLabel('One mouse. Two screens.');title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet('font-size:23px;font-weight:600');layout.addWidget(title)
@@ -37,11 +37,15 @@ class Window(QMainWindow):
         self.device=QComboBox();layout.addWidget(QLabel('Phone'));layout.addWidget(self.device)
         self.edge=QComboBox();self.edge.addItems(['right','left','top','bottom']);self.edge.setCurrentText(self.settings['edge'])
         layout.addWidget(QLabel('Phone position'));layout.addWidget(self.edge)
+        from layout_qt import LayoutEditor
+        self.placement=LayoutEditor(self.settings,self.layout_changed);layout.addWidget(self.placement)
+        self.edge.currentTextChanged.connect(lambda edge:self.placement.set_edge(edge) if self.placement.model.edge!=edge else None)
         self.speed=QDoubleSpinBox();self.speed.setRange(.1,4);self.speed.setSingleStep(.1);self.speed.setValue(self.settings['speed'])
         layout.addWidget(QLabel('Pointer speed'));layout.addWidget(self.speed)
-        self.clip_sync=QCheckBox('Share text clipboard while connected');layout.addWidget(self.clip_sync)
+        self.clip_sync=QCheckBox('Share clipboard');layout.addWidget(self.clip_sync)
+        self.clip_sync.setChecked(self.settings['share_clipboard'])
         QApplication.clipboard().dataChanged.connect(self.sync_clipboard)
-        self.clip_sync.toggled.connect(lambda _:self.sync_clipboard())
+        self.clip_sync.toggled.connect(self.clipboard_toggled)
         self.repeat=QCheckBox('Repeat held keys');self.repeat.setChecked(self.settings['repeat']);layout.addWidget(self.repeat)
         self.pairing=QLineEdit(self.settings.get('pairing_code',''));self.pairing.setEchoMode(QLineEdit.EchoMode.Password)
         self.pairing.setPlaceholderText('Code in Android Settings → Wi-Fi')
@@ -51,7 +55,7 @@ class Window(QMainWindow):
         self.fingerprint=QLineEdit(self.settings.get('tls_fingerprint',''));self.fingerprint.setPlaceholderText('TLS SHA-256 fingerprint shown on phone');layout.addWidget(self.fingerprint)
         self.wifi.toggled.connect(self.controls);self.address.textChanged.connect(self.controls)
         tools=QHBoxLayout()
-        for label,fn in (('Send clipboard',self.clipboard),('Paste text',self.paste),('Send file',self.file)):
+        for label,fn in (('Paste text',self.paste),('Send file',self.file)):
             button=QPushButton(label);button.clicked.connect(fn);tools.addWidget(button)
             if label=='Send file':self.file_button=button
         layout.addLayout(tools)
@@ -92,7 +96,7 @@ class Window(QMainWindow):
         self.tray_sharing.setEnabled(self.stop.isEnabled() if running else self.start.isEnabled())
         self.tray.setToolTip(NAME+(' · Sharing' if running else ' · Disconnected'))
         self.file_button.setEnabled(not self.wifi.isChecked() and bool(self.devices))
-        for control in (self.device,self.edge,self.speed,self.repeat,self.pairing,self.wifi,self.address,self.fingerprint):control.setEnabled(not running)
+        for control in (self.placement,self.device,self.edge,self.speed,self.repeat,self.pairing,self.wifi,self.address,self.fingerprint):control.setEnabled(not running)
 
     def devices_changed(self,devices,error=None):
         previous=self.devices[self.device.currentIndex()].serial if self.devices and self.device.currentIndex()>=0 else self.settings['serial']
@@ -112,9 +116,9 @@ class Window(QMainWindow):
         else:
             if index<0:return
             serial=self.devices[index].serial
-        self.settings={'serial':serial,'edge':self.edge.currentText(),'speed':self.speed.value(),
+        self.settings.update({'serial':serial,'edge':self.edge.currentText(),'speed':self.speed.value(),
                        'repeat':self.repeat.isChecked(),'pairing_code':self.pairing.text().strip(),
-                       'wifi_address':self.address.text().strip(),'tls_fingerprint':self.fingerprint.text().strip()}
+                       'wifi_address':self.address.text().strip(),'tls_fingerprint':self.fingerprint.text().strip()})
         save_settings(self.settings)
         try:self.worker.start(serial,self.settings['edge'],self.settings['speed'],self.settings['repeat'])
         except Exception as exc:self.status.setText(str(exc))
@@ -123,8 +127,10 @@ class Window(QMainWindow):
     def worker_event(self,event):
         kind=event['type']
         if kind=='ready':
-            self.status.setText('Sharing is ready. Move past the '+self.settings['edge']+' edge.');self.sync_clipboard()
-        elif kind=='active':self.status.setText('Controlling your phone.')
+            self.worker.send('clipboard-sharing',enabled=self.clip_sync.isChecked())
+            self.status.setText('Sharing is ready. Move past the '+self.settings['edge']+' edge.');self.sync_clipboard(force=True)
+        elif kind=='active':
+            self.status.setText('Controlling your phone.');self.sync_clipboard(force=True)
         elif kind=='connecting':self.status.setText('Connecting to Android…')
         elif kind=='permission':self.status.setText('Approve the desktop input-capture prompt.')
         elif kind=='clipboard':
@@ -138,12 +144,20 @@ class Window(QMainWindow):
             if self.quitting:QApplication.instance().quit()
         self.controls()
 
-    def sync_clipboard(self):
-        text=QApplication.clipboard().text()
-        if self.clip_sync.isChecked() and text!=self.phone_clipboard:
-            self.phone_clipboard=text;self.worker.send('clipboard',text=text)
+    def layout_changed(self,edge,layout):
+        self.settings.update(edge=edge,phone_layout=layout);save_settings(self.settings)
+        if self.edge.currentText()!=edge:self.edge.setCurrentText(edge)
 
-    def clipboard(self):self.worker.send('clipboard',text=QApplication.clipboard().text())
+    def clipboard_toggled(self,enabled):
+        self.settings['share_clipboard']=enabled;save_settings(self.settings)
+        self.worker.send('clipboard-sharing',enabled=enabled)
+        self.sync_clipboard(force=True)
+
+    def sync_clipboard(self,force=False):
+        text=QApplication.clipboard().text()
+        if self.clip_sync.isChecked() and (force or text!=self.phone_clipboard):
+            if self.worker.send('clipboard',text=text):self.phone_clipboard=text
+
 
     def paste(self):
         text,ok=QInputDialog.getMultiLineText(self,'Paste text','Text to enter in the phone’s focused field')
