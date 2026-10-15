@@ -15,12 +15,12 @@ New implementation inspired by DeskDock by Florian Draschbacher. Original/repair
 
 ## Downloads
 
-Current release: 0.2.5.
+Current releases: Android 0.2.5; desktop host 0.2.5.1.
 
 - [Android APK (unzip before installing)](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-android.apk.zip)
-- [Python host source](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-python-host.zip)
+- [Python host source](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5.1-python-host.zip)
 - [Android source](https://uncannyowly.com/content/files/2026/10/desk-dockt-0.2.5-android-source.zip)
-- [SHA-256 checksums](https://uncannyowly.com/content/files/2026/10/SHA256SUMS-3.txt)
+- [SHA-256 checksums](https://uncannyowly.com/content/files/2026/10/SHA256SUMS-4.txt)
 
 ## F-Droid
 
