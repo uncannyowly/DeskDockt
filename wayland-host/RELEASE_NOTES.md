@@ -1,3 +1,14 @@
+## Host 0.2.5.1 — reopen the running GTK application
+
+Fixed a crash when launching desk dockt while its GTK instance was already
+running, including when hidden in the tray. The window activation handler no
+longer overrides Gio.Application.activate, so subsequent launches correctly
+activate the existing instance over D-Bus. Android remains at 0.2.5.
+
+Validation: all 59 desktop checks pass on isolated X11, including a real
+D-Bus two-process relaunch test. The installed Manjaro Wayland launcher also
+reopens the existing application successfully.
+
 ## 0.2.5 — clipboard on entry and phone placement
 
 - Share clipboard replaces manual Send buttons; the preference is saved.

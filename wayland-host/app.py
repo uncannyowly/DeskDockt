@@ -37,7 +37,7 @@ class App(Adw.Application):
         self.tray_ready=False
         self.worker=Worker(GLib.idle_add,self.event)
         self.watcher=DeviceWatcher(GLib.idle_add,self.devices_changed)
-        self.connect('activate',self.activate)
+        self.connect('activate',self.on_activate)
         self.connect('shutdown',self.shutdown)
         # Keep the application and its worker alive when every window is hidden.
         # Only the explicit Quit action ends the application.
@@ -45,7 +45,7 @@ class App(Adw.Application):
         action=Gio.SimpleAction.new('quit',None)
         action.connect('activate',lambda *_:self.close())
         self.add_action(action)
-        for name,callback in (('show',self.activate),('start',self.start_clicked),('stop',self.stop_clicked),('hide',self.hide_window)):
+        for name,callback in (('show',self.on_activate),('start',self.start_clicked),('stop',self.stop_clicked),('hide',self.hide_window)):
             action=Gio.SimpleAction.new(name,None)
             action.connect('activate',lambda *_,fn=callback:fn())
             self.add_action(action)
@@ -60,7 +60,7 @@ class App(Adw.Application):
 
     def request_connection(self,action,parameter):
         self.requested_serial=parameter.get_string()
-        self.activate()
+        self.on_activate()
         self.start_requested()
 
     def start_requested(self):
@@ -79,7 +79,7 @@ class App(Adw.Application):
                 return False
         return False
 
-    def activate(self,*_):
+    def on_activate(self,*_):
         if self.window:
             self.window.present()
             return
